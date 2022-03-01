@@ -8,11 +8,15 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float mouseSensitivity;
     private float verticalRotStore;
     private Vector2 mouseInput;
+    private bool isGrounded;
     [SerializeField] private bool invertLook;
     [SerializeField] private float moveSpeed, runSpeed, activeMoveSpeed;
     [SerializeField] private Vector3 moveDir, movement;
     [SerializeField] private CharacterController charCon;
-    [SerializeField] private Camera cam;
+    [SerializeField] private Transform groundCheckPoint;
+    [SerializeField] private LayerMask groundLayers;
+    [SerializeField] private float jumpForce, _gravityMod;
+    private Camera cam;
 
     private void Start()
     {
@@ -32,12 +36,6 @@ public class PlayerController : MonoBehaviour
         {
             lookUpDown();
         }
-    }
-
-    private void LateUpdate()
-    {
-        cam.transform.position = viewPoint.position;
-        cam.transform.rotation = viewPoint.rotation;
     }
 
     private void lookUpDownInverted()
@@ -61,6 +59,30 @@ public class PlayerController : MonoBehaviour
         verticalRotStore = Mathf.Clamp(verticalRotStore, -60f, 60f);
     }
 
+    private void playerJump()
+    {
+        if(Input.GetButtonDown ("Jump") && isGrounded)
+        {
+            movement.y = jumpForce;
+        }
+        isGrounded = Physics.Raycast(groundCheckPoint.position, Vector3.down, 0.25f, groundLayers);
+    }
+
+    private void cursorLockUnlock()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            Cursor.lockState = CursorLockMode.None;
+        }
+        else if (Cursor.lockState == CursorLockMode.None)
+        {
+            if (Input.GetButtonDown(0))
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+            }
+        }
+    }
+
     private void playerMove()
     {
         moveDir = new Vector3(Input.GetAxisRaw("Horizontal"), 0f, Input.GetAxisRaw("Vertical"));
@@ -72,7 +94,24 @@ public class PlayerController : MonoBehaviour
         {
             activeMoveSpeed = moveSpeed;
         }
+        float yVel = movement.y;  //polishing gravity
         movement = ((transform.forward * moveDir.z) + (transform.right * moveDir.x)).normalized * activeMoveSpeed; // to control fast diaognal movement
+        movement.y = yVel;
+        if (charCon.isGrounded)
+        {
+            movement.y = 0f;
+        }
+        playerJump();
+        movement.y += Physics.gravity.y * Time.deltaTime * _gravityMod;
         charCon.Move(movement * Time.deltaTime);
+        cursorLockUnlock();
     }
+
+    private void LateUpdate()
+    {
+        cam.transform.position = viewPoint.position;
+        cam.transform.rotation = viewPoint.rotation;
+    }
+
+
 }
