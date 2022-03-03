@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Transform groundCheckPoint;
     [SerializeField] private LayerMask groundLayers;
     [SerializeField] private float jumpForce, _gravityMod;
+    [SerializeField] private GameObject bulletImpact;
     private Camera cam;
 
     private void Start()
@@ -30,11 +31,11 @@ public class PlayerController : MonoBehaviour
         playerMove();
         if (invertLook)
         {
-            lookUpDownInverted();
+            lookUpDown();
         }
         else
         {
-            lookUpDown();
+            lookUpDownInverted();
         }
     }
 
@@ -76,7 +77,7 @@ public class PlayerController : MonoBehaviour
         }
         else if (Cursor.lockState == CursorLockMode.None)
         {
-            if (Input.GetButtonDown(0))
+            if (Input.GetMouseButtonDown(0))
             {
                 Cursor.lockState = CursorLockMode.Locked;
             }
@@ -104,7 +105,22 @@ public class PlayerController : MonoBehaviour
         playerJump();
         movement.y += Physics.gravity.y * Time.deltaTime * _gravityMod;
         charCon.Move(movement * Time.deltaTime);
+        if (Input.GetMouseButtonDown(0))
+        {
+            shoot();
+        }
         cursorLockUnlock();
+    }
+
+    private void shoot()
+    {
+        Ray ray = cam.ViewportPointToRay(new Vector3 (0.5f, 0.5f, 0f));   // shoot at 0.5 camera angle in worldpoint
+        ray.origin = cam.transform.position;  //from where a ray starts
+        if(Physics.Raycast(ray, out RaycastHit hit))
+        {
+            GameObject bulletImpactObject =  Instantiate(bulletImpact, hit.point + (hit.normal * 0.002f), Quaternion.LookRotation(hit.normal, Vector3.up));
+            Destroy(bulletImpactObject, 5f);
+        }
     }
 
     private void LateUpdate()
