@@ -17,7 +17,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private LayerMask groundLayers;
     [SerializeField] private float jumpForce, _gravityMod;
     [SerializeField] private GameObject bulletImpact;
+    private float timeBetweenShots = 0.1f;
+    [SerializeField] private float shotCounter;   //Visible shot value 
     private Camera cam;
+
+    [SerializeField] private float maxHeat, heatPerShot, coolRate, overHeatCoolRate;
+    private float heatCounter;
+    private bool overHeated;
 
     private void Start()
     {
@@ -105,10 +111,39 @@ public class PlayerController : MonoBehaviour
         playerJump();
         movement.y += Physics.gravity.y * Time.deltaTime * _gravityMod;
         charCon.Move(movement * Time.deltaTime);
-        if (Input.GetMouseButtonDown(0))
+
+        if(!overHeated)
         {
-            shoot();
+            if (Input.GetMouseButtonDown(0))
+            {
+                shoot();
+            }
+            if (Input.GetMouseButton(0))  //Automating firing rate
+            {
+                shotCounter -= Time.deltaTime;
+                if (shotCounter <= 0)
+                {
+                    shoot();
+                }
+            }
+            heatCounter -= coolRate * Time.deltaTime;   //How fast the meter cools down
         }
+        else
+        {
+            heatCounter -= overHeatCoolRate * Time.deltaTime;
+            if(heatCounter <= 0)
+            {
+                heatCounter = 0;
+                overHeated = false;
+                UIController.instance.overheatedMessage.gameObject.SetActive(false);
+            }
+        }
+
+        if(heatCounter <= 0)
+        {
+            heatCounter = 0f;
+        }
+
         cursorLockUnlock();
     }
 
@@ -120,6 +155,15 @@ public class PlayerController : MonoBehaviour
         {
             GameObject bulletImpactObject =  Instantiate(bulletImpact, hit.point + (hit.normal * 0.002f), Quaternion.LookRotation(hit.normal, Vector3.up));
             Destroy(bulletImpactObject, 5f);
+        }
+        shotCounter = timeBetweenShots;
+
+        heatCounter += heatPerShot;
+        if(heatCounter >= maxHeat)
+        {
+            heatCounter = maxHeat;  // edge case
+            overHeated = true;
+            UIController.instance.overheatedMessage.gameObject.SetActive(true);
         }
     }
 
